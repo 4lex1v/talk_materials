@@ -1,0 +1,177 @@
+
+First let's define a simple factorial function:
+
+#+BEGIN_SRC racket :lang racket
+  (define fact
+    (λ (n)
+      (if (zero? n)
+          1
+          (* n
+             (fact (- n 1))))))
+#+END_SRC
+
+Having the above definition we can easily call it, 5 is probably the most known factorial value:
+
+#+BEGIN_EXAMPLE racket
+(fact 5) ;; => 120
+#+END_EXAMPLE
+
+Sadly we can't do this in Lambda Calculus, define a recursion function in terms of itself, by referring to its name. Sure you can argue that also don't have numbers, conditional and other maths, but the goal here is to explore the recursion, so to keep things simplified those details are omitted. 
+
+So we can't define a function this way and refer to the name, the only way to do that is to introduce a binding:
+
+#+NAME: factf
+#+BEGIN_SRC racket :lang racket
+  (λ (fact) ;; Int => Int
+    (λ (n) ;; Int
+      (if (zero? n)
+          1
+          (* n
+             (fact (- n 1))))))
+#+END_SRC
+
+Is there anything that we can do with this definition? Well we have a conditional in the middle that cuts the computation for the zero right? 
+
+#+BEGIN_SRC racket :lang racket
+  ((factf error) 0)
+#+END_SRC
+
+This, expectedly returns =1= for a =0= input, but would fail for =1..= inputs, reaching the error function. If only there existed a way to improve this things at least by one step. Giving =factf= a function (i.e =error=) it returns us a function that expects an =Int= and returns an =Int= right? So we give =factf= an =error= and it returns us a function =Int => Int= and =factf='s first argument expects a function of type =Int => Int=, let's give this a try:
+
+#+BEGIN_SRC racket :lang racket
+  ((factf (factf error)) 1)
+#+END_SRC
+
+Doing that many times we can getting closer to the goal of a perfect factorial implementation =) 
+
+But let's think about what we have here. First thing that we can say is that =factf= by definition is this anonymous construct, this knowtion allows us to factor out this definition into a nice lambda binding:
+
+#+BEGIN_SRC racket 
+  (((λ (factf)
+      (factf factf))
+  
+    (λ (f)
+      (λ (n)
+        (if (zero? n)
+            1
+            (* n
+               (f (- n 1))))))) 3)
+#+END_SRC
+
+Since our function generates only three steps that's the limit of our function. Now let's take a closer look. In fact what we have in out first part of the application, is that =factf= is a function that inductively improves a base case by one step, =(factf error)= works only for =0=, this returns =1=, we can see that, while =(factf (factf error))= works for the next number - 1 and so on and so forth. So can this thing use improve itself? 
+
+Now calling it with =0=, would still give us 1, due to the way a conditional works, but fails for =1=. That happens because =factf= in the first takes a function and we are passing it a number. But with a quick refactoring we can solve this problem:
+
+#+BEGIN_SRC racket
+  ((λ (factf)
+     (factf factf))
+ 
+   (λ (factf)
+     (λ (n)
+       (if (zero? n)
+           1
+           (* n
+              (factf (- n 1)))))))
+#+END_SRC
+
+We can see the problem, =factf= is out magic function that expects a function to build one step more, while we are feeding it a number. Is there anything we can do? The answer is right here - we are feeding =factf= to itself, let's do the same:
+
+#+BEGIN_SRC racket
+  ((λ (factf)
+     (factf factf))
+ 
+   (λ (factf)
+     (λ (n)
+       (if (zero? n)
+           1
+           (* n
+              ((factf factf) (- n 1)))))))
+#+END_SRC
+
+Let's move this example further, having =(factf factf)= in the body of our function is not a good thing, we'd like to have an =f= there. And we know a way to do this! By adding another lambda binding:
+
+#+BEGIN_SRC racket
+  ((λ (factf)
+     (factf factf))
+ 
+   (λ (factf)
+     ((λ (fact)
+        (λ (n)
+          (if (zero? n)
+              1
+              (* n
+                 (fact (- n 1))))))
+      (λ (n) ((factf factf) n)))))
+#+END_SRC
+
+So we've extracted this =(factf factf)= call, but why to wrap that with a lambda? Sadly previously it was in the special form which computed this part only if the condition was true, but otherwise Racket is an applicative-order language, which computes arguments before, unlike Haskell. If we won't wrap this with a lambda, this would result into infinite recursion, we won't hit that =(zero? n)=.
+
+And now we can see our definition of a factorial function, right here. Let's take it out so that we could declutter this mess. Just for sanity let's give it the name we were using along the way:
+
+#+BEGIN_SRC racket
+(define factf
+  (λ (f)
+   (λ (n)
+     (if (zero? n)
+         1
+         (* n
+            (f (- n 1)))))))
+#+END_SRC
+
+Let's do the same with the second thing, let's name it say =Y=:
+
+#+BEGIN_SRC racket
+(define Y
+  (λ (definition)
+    ((λ (factf) (factf factf))
+     (λ (factf) (definition (λ (n) ((factf factf) n)))))))
+#+END_SRC
+
+We can easily check that this thing works as expected by calling it:
+
+#+BEGIN_SRC racket
+((Y factf) 5)
+#+END_SRC
+
+This works for any number we provide. Now let's poke around our =Y= definition. If you take a look at the Wiki article or some other source you might see the following definition for =Y=: =λf.λx.f (x x) λx.f (x x)=, we are very close to it. There are two things that are different: =f= - this one is simple, it's just gives us another step, so applying it won't change a thing and wrapping this with a lambda has no effect either, so now we have two identical sides and the overall expression still works:
+
+#+BEGIN_SRC racket
+(define Y
+  (λ (f)
+    ((λ (x) (f (λ (n) ((x x) n))))
+     (λ (x) (f (λ (n) ((x x) n))))))) 
+
+(define fact (Y factf))
+
+(fact 5)
+#+END_SRC
+
+We've made all this way using a factorial function, but this can also work with others easily, like fibonachi sequence:
+
+#+BEGIN_SRC racket
+  (define fibf
+    (λ (f)
+      (λ (n)
+        (if (<= n 2)
+            1
+            (+ (fib (- n 1))
+               (fib (- n 2))))))
+#+END_SRC
+
+Applying this to =6= and =7= we should get =8= and =13= respectively. =Y= works in this case as well, let's recap. 
+
+First thing as we just saw what we got is an Applicative-order Y Combinator, which for some reason is also called a Z Combinator. And the idea overall is called a fixed-point combinator. By definition =c= is a fixed-point of a function =f(x)= if and only if =f(c) = c=. What are the examples? A simple one would be an identity function, whatever you pass to the identity function you get back, a slightly more complicated example i found in a Conceptual Mathematics books, say you have a circle, a point on the circle and function =f= that rotates this circle. What's a fixed point in this case? It's the center of the circle. Another example would be a cosine function on radiants, as you can see it converges to some number. 
+
+And that's the purpose of fixed-point combinator, using the definition of a computation it computes a fixed-point of it, which in our case is a function, that is =fact= or =fib=, it even follows the rule:
+
+#+BEGIN_SRC racket
+  (factf (factf fact)) ;; => fact
+#+END_SRC
+
+To recapr Y is a combinator that expects a non-recursive definition of a computation and generates a fixed-point function. First take away - we can define a recursive function, using a non-recursive definition.
+
+Second - we factor out recursion.
+
+Sadly, fixed-point combinator is not very practical, all languages nowdays support recursion. 
+
+

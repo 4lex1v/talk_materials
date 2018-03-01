@@ -1,0 +1,857 @@
+<!doctype html>
+<html lang="en">
+
+	  <head>
+		    <meta charset="utf-8">
+
+		    <title>Concurrency with Scalaz Task</title>
+
+		    <meta name="description" content="Introductory talk into concurrency with Scalaz Task">
+		    <meta name="author" content="Aleksandr Ivanov">
+
+		    <meta name="apple-mobile-web-app-capable" content="yes">
+		    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+		    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+		    <link rel="stylesheet" href="css/reveal.css">
+		    <link rel="stylesheet" href="css/font-awesome.css">
+		    <link rel="stylesheet" href="css/theme/sirthias.css" id="theme">
+
+		    <!-- Code syntax highlighting -->
+		    <link rel="stylesheet" href="lib/css/zenburn.css">
+
+		    <!-- Printing and PDF exports -->
+		    <script>
+			   var link = document.createElement( 'link' );
+			   link.rel = 'stylesheet';
+			   link.type = 'text/css';
+			   link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			   document.getElementsByTagName( 'head' )[0].appendChild( link );
+		    </script>
+
+        <style>
+         .reveal code {
+             font-family: "Hack", monospace;
+         }
+        </style>
+
+		    <!--[if lt IE 9]>
+		        <script src="lib/js/html5shiv.js"></script>
+		    <![endif]-->
+	  </head>
+
+	  <body>
+		    <div class="reveal">
+
+			      <!-- Any section element inside of this container is displayed as a slide -->
+			      <div class="slides">
+
+                <section>
+                    <h1>Scalaz Task</h1>
+                    <h2>Up & Running</h2>
+
+                    <br />
+
+                    <p> NY-Scala &nbsp;&nbsp; 2016-02-02@NYC </p>
+                    <small>
+                        <p>
+                            Aleksandr Ivanov <a href="http://twitter.com/4lex1v">@4lex1v</a> &nbsp;
+                            <a href="https://github.com/4lex1v"><i class="fa fa-github-square"></i></a> /
+                            <a href="https://www.linkedin.com/in/aleksandr-ivanov-26056366"><i class="fa fa-linkedin-square"></i></a>
+                        </p>
+
+                        <p>Sr. Software Engineer <a href="http://www.cakesolutions.net/">@CakeSolutions Ltd.</a></p>
+                        <p>Slides: <a href="">github</a>  </p>
+                    </small>
+
+                    
+
+                </section>
+
+                <section>
+                    <h2>Why might want to try?</h2>
+
+                    <section>
+                        
+                    </section>
+
+                    <section>
+                        Somewhat different from Scalaz Core
+                        
+                        
+
+                    </section>
+
+                    <section>
+                        <p>Perfect for Scalaz-heavy projects</p>
+                        <ul>
+                            <li>Scalaz-Streams / FS<sup style="font-size: smaller; vertical-align:super">2</sup></li>
+                            <li>Remotely / Http4s</li>
+                            <li>Argonaut / Doobie</li>
+                            <li class="fragment">Projects like Precog, SlamData, Funnel</li>
+                            <li class="fragment">etc...</li>
+                        </ul>
+                        
+                        
+
+                    </section>
+
+                    <section>
+                        <ol>
+                            <li class="fragment">
+                                Fine-grained control over
+                                <ul>
+                                    <li>Synchronous computations</li>
+                                    <li>Asynchronous computations</li>
+                                </ul>
+                            </li>
+                            <li class="fragment">Better error-handling</li>
+                            <li class="fragment">Referential Transparency</li>
+                            <li class="fragment">Equentional Reasoning</li>
+                        </ol>
+                        
+                        
+
+                    </section>
+
+                </section>
+
+                <section>
+                    <h2>Part I: Core Abstractions</h2>
+                </section>
+
+                <section>
+                    <h2>Scalaz Future</h2>
+                    <section>
+
+                        <blockquote>
+                            <code>Future</code> is a trampolined computation producing a value of type <code>A</code>, that may include asynchronous steps.
+                        </blockquote>
+
+                         
+                    </section>
+
+                    <section>
+                        <h3>What does trampolined mean?</h3>
+                        <blockquote class="fragment">A Trampoline represents a computation that can be stepped through.</blockquote>
+
+                         
+                    </section>
+                </section>
+
+                <section>
+                    <h2>Trampoline</h2>
+
+                    <section>
+                        <pre style="width: 65%; margin-left: 27%"><code>
+def even [A](ns: List[A]): Boolean =
+  ns match {
+    case Nil => true
+    case x :: xs => odd(xs)
+  }
+
+def odd [A](ns: List[A]): Boolean =
+  ns match {
+    case Nil => false
+    case x :: xs => even(xs)
+  }
+                        </code></pre>
+
+                         
+
+                    </section>
+
+                    <section>
+                        <div>
+                            <pre style="text-align: center"><code class="nljs scala" data-trim>
+scala> even(List.fill(10000)(1))
+                            </code></pre>
+
+
+                            <img class="fragment"
+                                 style="width: 20%; display: inline"
+                                 src="./lib/img/call_stack_1.svg"/>
+
+                            <img class="fragment"
+                                 style="width: 20%; display: inline"
+                                 src="./lib/img/call_stack_2.svg"/>
+
+                            <img class="fragment"
+                                 style="width: 20%; display: inline"
+                                 src="./lib/img/call_stack_3.svg"/>
+
+                            <img class="fragment"
+                                 style="width: 20%; display: inline"
+                                 src="./lib/img/call_stack_4.svg"/>
+                        </div>
+
+                    </section>
+
+                    <section>
+                        <pre style="width: 65%; padding-left: 20%"><code class="nljs scala" data-trim>
+sealed trait Trampoline[+A] {
+  final def run: A = this match {
+    case Done(a) => a
+    case More(k) => k().run
+  }
+}
+
+case class Done[+A](v: A) extends Trampoline[A]
+
+case class More[+A](
+  thunk: () => Trampoline[A]
+) extends Trampoline[A]
+                        </code></pre>
+                    </section>
+
+                    <section>
+                        <pre style="width: 75%; padding-left: 20%"><code class="nljs scala" data-trim>
+def even [A](ns: List[A]): Trampoline[Boolean] =
+  ns match {
+    case Nil => Done(true)
+    case x :: xs => More(() => odd(xs))
+  }
+
+def odd [A](ns: List[A]): Trampoline[Boolean] =
+  ns match {
+    case Nil => Done(false)
+    case x :: xs => More(() => even(xs))
+  }
+                        </code></pre>
+                        
+                          
+
+                    </section>
+
+                    <section>
+
+                        <div style="position: absolute; left: 0">
+                            <pre style="width: 55%"><code class="nljs scala" data-trim>
+scala> even(List.fill(100000)(1))
+res0: Trampoline[Boolean] = More(&lt;function0&gt;)
+
+                            </code></pre>
+                            <pre class="fragment" data-fragment-index="0" style="margin-bottom: 0; width: 55%"><code class="nljs scala" data-trim>
+scala> res0.run
+                            </code></pre>
+                            <pre class="fragment" data-fragment-index="5" style="margin-top: -0.45%; width: 55%"><code class="nljs scala" data-trim>
+res2: Boolean = true
+                            </code></pre>
+
+
+                            <img class="fragment"
+                                 data-fragment-index="1"
+                                 style="width: 20%; display: inline"
+                                 src="./lib/img/call_stack_tramp_1.svg"/>
+
+                            <img class="fragment"
+                                 data-fragment-index="2"
+                                 style="width: 20%; display: inline"
+                                 src="./lib/img/call_stack_tramp_2.svg"/>
+
+                            <img class="fragment"
+                                 data-fragment-index="3"
+                                 style="width: 20%; display: inline"
+                                 src="./lib/img/call_stack_tramp_3.svg"/>
+
+                            <img class="fragment"
+                                 data-fragment-index="4"
+                                 style="width: 20%; display: inline"
+                                 src="./lib/img/call_stack_tramp_4.svg"/>
+
+                        </div>
+                    </section>
+
+                    <section>
+                        <blockquote>
+                            Eliminates <code>StackOverflowException</code>, replacing mutual recursion with tail-recursive <code>run</code> method call.
+                        </blockquote>
+                    </section>
+
+                </section>
+
+                <section>
+                    <h2>Scalaz Future</h2>
+                    <section>
+                        <blockquote>
+                            <code>Future</code> is a trampolined computation producing a value of type <code>A</code>, that may include asynchronous steps.
+                        </blockquote>
+                        <p>
+                            <span class="fragment">
+                                <code>Now</code>
+                            </span><span class="fragment">,
+                                <code>Suspend</code>
+                            </span><span class="fragment">,
+                                <code>Async</code>
+                            </span><span class="fragment">,
+                                <code>Bind</code>
+                            </span>
+                        </p>
+
+                          
+                    </section>
+
+                    <section>
+                        <h3>Future.Now</h3>
+                        <blockquote>
+                            Convert a strict value to a <code>Future</code>
+                        </blockquote>
+                        <code style="font-size:smaller">def now[A](a: A): Future[A] = Now(a)</code>
+                    </section>
+
+                    <section>
+                        <h3>Future.Suspend</h3>
+                        <blockquote>
+                            Produce <code>f</code> in the main trampolining loop, <code>Future.step</code>, using a fresh
+                            call stack.
+                        </blockquote>
+                        <code  style="font-size: smaller">def suspend[A](f: => Future[A]): Future[A] = Suspend(() => f)</code>
+                    </section>
+
+                    <section>
+                        <h3>Future.Suspend</h3>
+                        <blockquote>
+                            Lift a non-strict value to a <code>Future</code>.
+                        </blockquote>
+                        <code style="font-size: smaller">def delay[A](a: => A): Future[A] = Suspend(() => Now(a))</code>
+                    </section>
+
+                    <section>
+                        <h3>Future.Async</h3>
+                        <blockquote>
+                            Create a <code>Future</code> from an asynchronous computation, which takes the form
+                            of a function with which we can register a callback
+                        </blockquote>
+                        <code style="display:block; font-size: smaller">def async[A](listen: (A => Unit) => Unit): Future[A] <span class="fragment fade-out" data-fragment-index="0">=</span></code>
+                        <code class="fragment fade-out" style="font-size: smaller" data-fragment-index="0">Async((cb: A => Trampoline[Unit]) => listen { a => cb(a).run })</code>
+
+                         
+
+                    </section>
+
+                    <section>
+                        <pre style="width: 75%; padding-left: 6%"><code class="hljs scala">
+case class Employee(name: String, age: Int, lang: String)
+
+val map = Map("Alex" -> Employee("Aleksandr", 25, "Scala"))
+                        </code></pre>
+                    </section>
+
+                    <section>
+                        <pre style="width: 55%"><code class="hljs scala">
+/**
+ * Find an [[Employee]] by using its `id`
+ */
+def findByName(id: String): Future[Employee] =
+  Future.async(cb => cb(map(id)))
+                        </code></pre>
+                    </section>
+                    <section>
+                        <pre style="width: 55%"><code class="hljs scala">
+findByName("Alex").map(_.lang).runAsync {
+  lang => println(s"The language is: $lang ")
+}
+
+// Output: The language is: Scala
+                        </code></pre>
+                    </section>
+
+                    <section>
+                        <h3>Forking</h3>
+                        <blockquote>
+                            Create a <code>Future</code> that will evaluate <code>a</code> using the given <code>ExecutorService</code>.
+                        </blockquote>
+                        <pre>
+                            <code class="njls scala">
+def apply[A](a: => A)(implicit pool: ExecutorService): Future[A] =
+ Async { cb => pool.submit { new Callable[Unit] { def call = cb(a).run } } }
+                            </code>
+                        </pre>
+
+                         
+
+                    </section>
+
+                    <section>
+                        <h3>Forking</h3>
+                        <blockquote>
+                            Returns a <code>Future</code> that produces the same result as the given <code>Future</code>,
+                            but forks its evaluation off into a separate (logical) thread, using
+                            the given <code>ExecutorService</code>
+                        </blockquote>
+
+                        <pre>
+                            <code class="njls scala">
+def fork[A](a: => Future[A])(implicit pool: ExecutorService): Future[A] =
+  Future(a).join
+                            </code>
+                        </pre>
+
+                         
+                    </section>
+                </section>
+
+                <section>
+                    <h2>Exception Handling</h2>
+
+                    <section>Scalaz Future doesn't know anything about <span style="color: #ff2c2d">errors</span></section>
+                    <p>
+                        <code>Future(throw new Throwable).run</code>
+                    </p>
+                    <section>But we can fix that<span class="fragment">, right??</span></section>
+
+                    <section>
+                        <p>Just use <code>Future[Throwable \/ A]</code> instead</p>
+                        <p class="fragment">© what's the problem?</p>
+                    </section>
+
+                    <section style="color: #ff2c2d">Monads do not compose</section>
+
+                    <section>
+                        <pre style="width: 65%; margin-left: 22%"><code class="hljs scala">
+val f: Future[Throwable \/ User] = Future { ... }
+                        </code></pre>
+                    </section>
+
+                    <section>
+                        <pre style="width: 65%; margin-left: 25%"><code>
+val email: Future[Throwable \/ String] = {
+  f.map { (value: Throwable \/ User) =>
+    value.map { user =>
+      user.email
+    }
+  }
+}
+                        </code></pre>
+                    </section>
+
+                    <section>
+                        <h3>What about this guy?</h3>
+
+                        <pre style="margin-left: 27%; width: 55%"><code class="nljs scala" data-trim>
+val f: Future[Throwable \/ Option[User]]
+                        </code></pre>
+
+                          
+
+                    </section>
+                </section>
+
+                <section>
+                    <h2>Scalaz Task</h2>
+
+                    <section>
+                        <p>Scalaz Future + Exception Handling</p>
+                        <pre style="margin-left: 22%; width: 55%"><code class="nljs scala" data-trim>
+class Task[+A](val get: Future[Throwable \/ A])
+                        </code></pre>
+                    </section>
+
+                </section>
+
+                <section>
+                    <h2>Combinators</h2>
+
+                    <section>
+                        <h3>Future</h3>
+                        <pre style="margin-left: 20%; width: 75%"><code class="nljs scala" data-trim>
+/**
+ * Run this `Future` and block awaiting its result.
+ */
+def run: A
+
+/**
+ * Run this `Future`, passing the result to the given
+ * callback once available.
+ */
+def runAsync(cb: A => Unit): Unit
+                        </code></pre>
+                    </section>
+
+                    <section>
+                        <h3>Future</h3>
+                        <pre style="margin-left: 15%;"><code class="nljs scala" data-trim>
+/**
+ * Run this `Future` and block until its result is available,
+ * or until `timeoutInMillis` milliseconds have elapsed
+ */
+def runFor(timeout: Duration): A
+
+def attemptRunFor(timeoutInMillis: Long): Throwable \/ A
+
+/**
+ * Returns a `Future` that delays the execution of this
+ * `Future` by the duration `t`.
+ */
+def after(t: Duration): Future[A]
+                        </code></pre>
+                    </section>
+
+                    <section>
+                        <h3>Task</h3>
+                        <pre style="margin-left: 10%;"><code class="nljs scala" data-trim>
+/**
+ * Returns a new `Task` in which `f` is scheduled to be run on completion.
+ */
+def onFinish(f: Option[Throwable] => Task[Unit]): Task[A]
+
+/**
+ * Calls `attempt` and handles some exceptions using the given partial
+ * function. Any nonmatching exceptions are reraised.
+ */
+def handle[B>:A](f: PartialFunction[Throwable,B]): Task[B]
+
+def handleWith[B>:A](f: PartialFunction[Throwable,Task[B]]): Task[B]
+                        </code></pre>
+                    </section>
+
+                    <section>
+                        <h3>Task</h3>
+                        <pre style="margin-left: 10%;"><code class="nljs scala" data-trim>
+/**
+ * Retries this task if it fails, once for each element in `delays`,
+ * each retry delayed by the corresponding duration.
+ * A retriable failure is one for which the predicate `p` returns `true`.
+ */
+def retry(delays: Seq[Duration], p: (Throwable => Boolean)): Task[A]
+                        </code></pre>
+
+                        <pre class="fragment" style="margin-left: 10%;"><code class="nljs scala" data-trim>
+val computation: Task[BigData] = ...
+computation.retry(List.fill(5)(1.minute), _.isInstanceOf[ServiceNotAvail])
+
+                        </code></pre>
+
+                    </section>
+
+
+                    <section>
+                        <h3>Parallel combinators</h3>
+
+                        <pre style="margin-left: 15%; width: 75%"><code class="nljs scala" data-trim>
+def delay = Random.nextInt(300)
+val tasks = (1 to 5).map(n => Task({ Thread.sleep(delay); n}))
+
+scala> Task.gatherUnordered(tasks).run
+// res4: List[Int] = List(5, 2, 1, 4, 3)
+                        </code></pre>
+                    </section>
+
+                    <section>
+                        <h3>Parallel Combinators</h3>
+                        <pre style="margin-left: 10%;"><code class="nljs scala" data-trim>
+def delay = Random.nextInt(300)
+val tasks = (1 to 5).map(n => Task.delay({ Thread.sleep(delay); n}))
+
+scala> Task.gatherUnordered(tasks).run
+// res5: List[Int] = List(1, 2, 3, 4, 5)
+                        </code></pre>
+                    </section>
+                </section>
+
+                <section>
+                    <h2>Part II: Execution Model</h2>
+                </section>
+
+                <section>
+                    <h2>Execution Model</h2>
+
+                    <section>
+                        <p class="fragment">Using</p>
+                        <p>
+                            <code class="fragment">Now, </code>
+                            <code class="fragment">Suspend, </code>
+                            <code class="fragment">Async, </code>
+                            <code class="fragment">Bind</code>
+                        </p>
+
+                        <p class="fragment">we describe stages of a trampoline</p>
+
+                        <p class="fragment" style="text-decoration: underline">Nothing about concurrency</p>
+
+                        
+
+                    </section>
+
+                    <section>
+                        <h3>Futures and Promises (<a href="http://docs.scala-lang.org/overviews/core/futures.html">SIP-14</a>)</h3>
+                        <blockquote>
+                            Futures provide a way to reason about performing many operations in parallel– in an efficient and non-blocking way. A Future is a placeholder object for a value that may not yet exist.
+                        </blockquote>
+                    </section>
+
+                    <section>
+                        <h3>Factory functions:</h3>
+                        <pre style="padding-left: 15%"><code class="hljs scala" data-trim data-noescape>
+/**
+ * Starts an asynchronous computation and returns a Future
+ * object with the result of that computation.
+ */
+def apply[A](a: => A)(implicit ctx: ExecutionContext): Future[A]
+
+// Creates an already completed Future with the specified result.
+def successful[A](a: A): Future[A]
+
+// Creates an already completed Future with the specified exception.
+def failed[A](ex: Throwable): Future[A]
+
+// Creates an already completed Future with the result or exception.
+def fromTry[T](result: Try[T]): Future[T]
+                        </code></pre>
+                    </section>
+
+                    <section>
+                        <h3>Creating a Future</h3>
+                        <div>
+                            <pre class="fragment" style="width: 65%"><code class="nljs scala" data-trim>
+scala> Future(println("Hello, NY-Scala meetup"))
+Hello, NY-Scala meetup // side-effect
+res3: Future[Unit] = Promise$DefaultPromise@45d6ef73
+                            </code></pre>
+
+                            <div class="fragment"
+                                 style="position: absolute;
+                                        top: 18%;
+                                        left: 33%;
+                                        padding: 10pt;
+                                        background-color: #1B2C3D;
+                                        border: 2pt solid #ff2c2d;
+                                        transform: rotate(20deg)">
+                                <span style="color: #ff2c2d">WARNING</span>: Immediately <br /> spawns a computation
+                            </div>
+
+                            <img class="fragment"
+                                 style="position: absolute;
+                                        top: -60%;
+                                        left: 18%;"
+                                 src="./lib/img/async_cloud.svg"/>
+
+                            <img class="fragment"
+                                 style="position: absolute;
+                                        top: 55%;
+                                        left: 60%;"
+                                 src="./lib/img/memoiz_cloud.svg"/>
+                        </div>
+
+                    </section>
+
+                    <section>
+                        <h3>With Futures</h3>
+                        <div>
+                            <pre style="margin-left: 15%; width: 75%"><code class="nljs scala" data-trim>
+scala> val userKey: Future[KeyHolder] = getGodModeKey(...)
+STATUS: Quering a user key in mongo...
+// Submitted, executed, memoized
+userKey: Future[KeyHolder] = Promise$DefaultPromise@45d6ef73
+                            </code></pre>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h3>With Futures</h3>
+                        <div>
+                            <pre style="margin-left: 15%; width: 75%"><code class="nljs scala" data-trim>
+scala> val taskA: Future[Result] = userKey.flatMap(doTaskA)
+taskA: Future[Result] = Promise$DefaultPromise@4234asdf
+
+scala> val taskB: Future[Result] = userKey.flatMap(doTaskB)
+taskA: Future[Result] = Promise$DefaultPromise@434puh32
+STATUS: Running TaskB
+                            </code></pre>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h3>With Futures</h3>
+                        <div>
+                            <pre style="margin-left: 10%;"><code class="nljs scala" data-trim>
+scala> val result = for { a <- taskA; b <- taskB } yield (a, b)
+result: Future[(Result, Result)] = Promise$DefaultPromise@asd23ha
+
+scala> result.onComplete(println)
+("ResultA", "ResultB")
+                            </code></pre>
+                        </div>
+                    </section>
+
+
+                    <section>
+                        <h3>With Task</h3>
+                        <div>
+                            <pre class="fragment" style="margin-left: 20%; width: 75%"><code class="nljs scala" data-trim>
+val userKey: Task[KeyHolder] = getGodModeKey(...)
+val taskA: Task[Result] = userKey.flatMap(doTaskA)
+val taskB: Task[Result] = userKey.flatMap(doTaskB)
+val result = for { a <- taskA; b <- taskB } yield (a, b)
+                            </code></pre>
+
+                            <div class="fragment"
+                                 style="padding: 2%;
+                                        position: absolute;
+                                        top: 25%;
+                                        left: 35%;
+                                        background-color: rgb(47, 78, 123);
+                                        border: 2pt solid #eee8d5;">
+                                <p style="margin: 0; padding:0 ">Nothing Happens</p>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h3>With Task</h3>
+                        <div>
+                            <pre style="margin-left: 20%; width: 75%"><code class="nljs scala" data-trim>
+scala> result.runAsync(println)
+STATUS: Quering a user key in mongo...
+STATUS: Running TaskA
+STATUS: Quering a user key in mongo...
+STATUS: Running TaskB
+("ResultA", "ResultB")
+
+                            </code></pre>
+
+                        </div>
+                    </section>
+
+
+                    <section>
+                        <h3>The Solution</h3>
+                        <pre class="fragment" style="margin-left: 10%"><code class="nljs scala" data-trim>
+/**
+ * Create a `Task` that starts evaluating `a` using the given
+ * `ExecutorService` right away.
+ */
+def unsafeStart[A](a: => A)(implicit pool: ExecutorService): Task[A]
+                        </code></pre>
+                    </section>
+
+                    <section>
+                        <h3>The Solution №<sup>2</sup></h3>
+                        <pre class="fragment" style="margin-left: 10%"><code class="nljs scala" data-trim>
+getGodModeKey(...) flatMap { userKey =>
+  val taskA: Task[Result] = userKey.flatMap(doTaskA)
+  val taskB: Task[Result] = userKey.flatMap(doTaskB)
+
+  val result = for { a <- taskA; b <- taskB } yield (a, b)
+}
+                        </code></pre>
+                    </section>
+
+                    <section>
+                        <h3>Referential Transparency</h3>
+                    </section>
+
+                    <section>
+                        <h3>Scala Futures aren't Referentially Transparent</h3>
+                        <code class="nljs scala" data-trim>val x = f(a)</code><br />
+                        <code class="nljs scala" data-trim>(x, x) == (f(a), f(a))</code>
+                    </section>
+
+                    <section>
+                        <h3>Scala Futures aren't Referentially Transparent</h3>
+                        <pre class="fragment" style="margin-left: 15%; width: 75%"><code class="nljs scala" data-trim>
+scala> val v = Future(util.Random.nextInt)
+v: Future[Int] = Promise$DefaultPromise@5fe3t8
+
+scala> (v, v)
+(1018963001,1018963001)
+                        </code></pre>
+                    </section>
+
+                    <section>
+                        <h3>Scala Futures aren't Referentially Transparent</h3>
+                        <pre class="fragment" style="margin-left: 15%; width: 75%"><code class="nljs scala" data-trim>
+(Future(util.Random.nextInt), Future(util.Random.nextInt))
+(705058514,-56734286)
+                        </code></pre>
+                    </section>
+
+                    <section>
+                        <p>We can reason about <code>Futures</code> only with pure computation</p>
+                    </section>
+
+                    <section>
+                        <h3>While Scalaz Task has a consistent behaviour</h3>
+                        <pre class="fragment" style="margin-left: 15%; width: 75%"><code class="nljs scala" data-trim>
+scala> (Task(util.Random.nextInt), Task(util.Random.nextInt))
+(199852767, 559379219)
+
+scala> val v = Task(util.Random.nextInt)
+scala> (v, v)
+(-183140122, -1435759147)
+                        </code></pre>
+                    </section>
+
+                    <section>
+                        <p>So is it Scalaz Task or Scala Futures ???</p>
+                    </section>
+
+                    <section>
+                        <ul>
+                            <li class="fragment">Different goals and execution models</li>
+                            <li class="fragment">Different optimization technics</li>
+                            <li class="fragment">Equational reasoning</li>
+                            <li class="fragment">Different concurrency tools</li>
+                            <li class="fragment">Task captures side-effects as values, while Future does not</li>
+                        </ul>                        
+                    </section>
+
+                </section>
+
+                <section>
+                    <h2>Summary</h2>
+                    <section>
+                        <p>Reasonably-prised application</p>
+                        <p class="fragment">(equational reasoning)</p>
+                    </section>
+
+                    <section>
+                        <p>Manual control over code execution</p>
+                        <p class="fragment">But tends to become more complicated then you might expect</p>
+                    </section>
+
+                    <section>
+                        <p>Not convenient to use with Typesafe-stack</p>
+                    </section>
+
+                    <section>
+                        <p>Performance is a two-side coin</p>
+                    </section>
+                </section>
+
+            </div>
+		    </div>
+
+		    <script src="lib/js/head.min.js"></script>
+		    <script src="js/reveal.js"></script>
+
+		    <script>
+
+			   // Full list of configuration options available at:
+			          // https://github.com/hakimel/reveal.js#configuration
+			   Reveal.initialize({
+				     controls: false,
+				     history: true,
+             //center: false,
+
+				     transition: 'fade', // none/fade/slide/convex/concave/zoom
+             transitionSpeed: 'fast',
+
+             width: 1240,
+
+				     // Optional reveal.js plugins
+				     dependencies: [
+					       { src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					       { src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					       { src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					       { src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+					       { src: 'plugin/zoom-js/zoom.js', async: true },
+					       { src: 'plugin/notes/notes.js', async: true }
+				     ]
+			   });
+
+		    </script>
+
+	  </body>
+</html>

@@ -1,0 +1,727 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+
+		<title>Monadic Bakery with Spray and Scalaz</title>
+
+		<meta name="description" content="My presentation on how can Spray be used in conjunction with Scalaz in real projects">
+		<meta name="author" content="Ivanov Alexander">
+
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<link rel="stylesheet" href="css/reveal.min.css">
+		<link rel="stylesheet" href="css/theme/sirthias.css" id="theme">
+		<link rel="stylesheet" href="lib/css/font-awesome.css">
+
+		<!-- For syntax highlighting -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- If the query includes 'print-pdf', include the PDF print sheet -->
+		<script>
+			if( window.location.search.match( /print-pdf/gi ) ) {
+				var link = document.createElement( 'link' );
+				link.rel = 'stylesheet';
+				link.type = 'text/css';
+				link.href = 'css/print/pdf.css';
+				document.getElementsByTagName( 'head' )[0].appendChild( link );
+			}
+		</script>
+
+		<!--[if lt IE 9]>
+		<script src="lib/js/html5shiv.js"></script>
+		<![endif]-->
+	</head>
+
+	<body>
+
+		<div class="reveal">
+
+			<!-- Any section element inside of this container is displayed as a slide -->
+			<div class="slides">
+				
+				<section>
+					<h1>Monadic Bakery with Spray and Scalaz</h1>
+					<p>
+						<small>By <a href="http://alterstack.io">Ivanov Alexander</a> / <a href="http://twitter.com/4lex1v">@4lex1v</a></small>
+					</p>
+				</section>
+
+				<section>
+					<h2>Agenda</h2>
+					<ul>
+						<li>Spray</li>
+						<li>Cake Pattern</li>
+						<li>Magnet Pattern</li>
+						<li>Scalaz</li>
+					</ul>
+				</section>
+
+				<section>
+					<h2>Spray</h2>
+					<img style="width:80%" src="img/spray.svg" alt="spray components"><br />
+					webinar: <a href="https://www.youtube.com/watch?v=7MqD7_YvZ8Q">introduction to spray</a>
+				</section>
+
+				<section>
+					<h2>Spray</h2>
+					<img style="width:80%" src="img/spray-route.svg" alt="spray components routing"><br />
+					webinar: <a href="https://www.youtube.com/watch?v=7MqD7_YvZ8Q">introduction to spray</a>
+				</section>
+
+				<section>
+					<h2>Spray-Routing</h2>
+					<ul>
+						<li>internal DSL for working with user requests</li>
+						<li>type-safe, flexible and composable</li>
+						<li>easy to work with</li>
+					</ul><br /><br />
+					webinar: <a href="https://www.youtube.com/watch?v=7MqD7_YvZ8Q">introduction to spray</a>
+				</section>
+
+				<section>
+					<h2>Spray-Routing: Route</h2>
+					<pre style="padding-left: 24%"><code data-trim class="scala">type Route = RequestContext => Unit</code></pre>
+				</section>
+
+				<section>
+					<h2>Spray-Routing: Directive</h2>
+					<ul>
+						<li>Transform request</li>
+						<li>Filter request</li>
+						<li>Extract values from the request</li>
+						<li>Complete request</li>
+					</ul>
+				</section>
+
+				<section>
+					<h2>Spray-Routing: Marshaller</h2>
+					<ul style="padding-left: 10%">
+						<li>Not a part of Spray-routing module</li>
+						<li>“Marshalling” is the process of converting a higher-level (object) structure into some kind of lower-level representation, often a “wire format”</li>
+						<li>Marshaller converts object of T into HttpEntity</li><br />
+
+						<pre><code data-trim class="scala">
+trait Marshaller[-T] {
+  def apply(value: T, ctx: MarshallingContext)
+}	
+						</code></pre>
+						
+					</ul>
+				</section>
+
+				<section class="present" style="top: -322px; display: block;">
+				  <h2>Spray-Routing: Example</h2>
+					<pre style="padding-left: 25%"><code data-trim class="scala">
+						lazy val registration: Route = {
+  (path("register") & put) {
+    register { completeAs(Created) }
+  }
+}
+					</code></pre>
+
+					<pre style="padding-left: 25%"><code data-trim class="scala">
+lazy val authentication: Route = {
+  (path("authenticate") & post) {
+    authenticate { session =>
+      setCookie(session.asCookie) {
+        complete(Accepted)
+      }
+    }
+  }
+}
+					</code></pre>
+					<pre style="padding-left: 13%"><code data-trim class="scala">	
+						val modules: Route = registration ~ authentication ~ ...
+					</code></pre>						
+				</section>
+
+				<section>
+					<h2>Cake Pattern</h2>
+					<pre style="padding-left: 23%; font-size: 16px"><code data-trim class="scala">	
+					trait RepositoryModule[M[+_]] {
+  type Repository <: RepositoryLike
+  implicit val M: Monad[M]
+  val repo: Repository
+  trait RepositoryLike {
+    def getAllUsers(): M[List[Users]]
+  }
+}
+
+trait RemoteRepositoryModule extends RepositoryModule[Task] {
+  trait Repository extends RepositoryLike {
+    def getAllUsers(): Task[List[Users]] = { ... }
+  }
+} 
+
+trait InMemoRepoModule extends RepositoryModule[Id] {
+  trait Repository extends RepositoryLike {
+    def getAllUsers(): Id[List[Users]] = { ... }
+  }
+}
+</code></pre>
+				</section>
+
+				<section>
+					<h2>Cake Pattern</h2>
+					<pre style="padding-left: 25%;"><code data-trim class="scala">	
+						trait ServiceStackBase[M[+_]]
+  extends RepositoryModule[M]
+
+class Service 
+  extends ServiceStackBase[Task] 
+     with RemoteRepositoryModule {
+  object repo extends Repository
+}
+
+class ServiceSpec
+  extends ServiceStackBase[Id] 
+     with InMemoRepoModule {
+  object repo extends Repository
+}
+					</code></pre>
+				</section>
+
+				<section class="present" style="top: -322px; display: block;">
+				  <h2>Spray-Routing: Example, Revised</h2>
+					<pre style="font-size: 40%"><code data-trim class="scala">
+						trait ActivationModule[M[+_]]
+  extends ServiceStorageModule[M]
+     with MessengerModule[M]
+     with SchedulingServiceModule[M]
+     with StatisticsESModule
+     with LoggingSupport {
+
+  private implicit lazy val repo = collections.medikit.activations
+
+  def initActivation(program: Program): D1[(ActivationKey, Activation)] = for {
+    checked   <- checkLimit(program)
+    activation = Activation(checked)
+    result    <- storeActivation(activation)
+  } yield result
+
+  def findActivation(activationId: String): D1[Activation] = unwrap {
+    findById[Activation](activationId).runLast.attempt >>= {
+      case \/-(Some(res)) => Task.now(res)
+      case _ => Task.fail(WrongActivationKeyRejection)
+    }
+  }
+
+  def validKey: Directive1[String] = path(Segment) flatMap {
+    case key if ObjectId.isValid(key) => provide(key)
+    case _ => reject(WrongActivationKeyRejection)
+  }
+
+  def validateCode(submission: ConfirmationCode, activation: Activation): D0 = {
+    if (activation.code == submission.code) pass else reject(ConfirmationCodeRejection)
+  }
+
+  def closeActivation(activationId: String): D0 = removeActivation(activationId).asD0
+
+  private def rejectIfExceeded(jobs: List[JobDetail]): D0 = {
+    val exceeded = jobs.length < maxJobs
+    if (exceeded) pass else reject(ProgramLimitExceededRejection)
+  }
+
+  private def checkLimit(program: Program): D1[Program] = rejectIfExceeded {
+    jobFactory findJobDetails program.phone
+  } asD1 program
+
+  def storeActivation(activation: Activation): D1[(ActivationKey, Activation)] = unwrap {
+    store[Activation](activation).runLast >>= {
+      case None => Task.fail(DOR("Couldn't store activation request"))
+      case Some(result) => result.fold(Task.fail(_), Task.now) map {
+        case (id, act) => ActivationKey(id) -> act
+      }
+    }
+  }
+
+  def removeActivation(id: String): D1[Boolean] = unwrap {
+    removeById(id).runLast >>= {
+      case Some(\/-(res)) => Task.now(res)
+      case _              => Task.fail(DOR("Couldn't remove activation"))
+    }
+  }
+
+  lazy val activation = {
+    (pathPrefix("activation") & validKey) { implicit (key: ApiKey) =>
+      (post & pathEnd) {
+        (entityAs[Program] >>= initActivation) {
+          case (key: ActivationKey, activation: Activation) =>
+            sendMessage(ActivationCode(activation)) {
+              complete(Created, key)
+            }
+        }
+      } ~
+      (post & path(ProgramIdSegment)) { (id: ProgramId) =>
+        (entityAs[ConfirmationCode] & findActivation(apiKey)) {
+          case (submitCode: ConfirmationCode, activation: Activation) =>
+            validateCode(submitCode, activation) {
+              (closeActivation(id) & scheduleProgram(activation.program)) {
+                (sendMessage(Activated(activation)) & emitEvent(ProgramActivated(activation))) {
+                  completeAs(Accepted) { "Program activated" }
+                }
+              }
+            }
+        }
+      } ~
+      (get & path(ProgramIdSegment)) { (id: ProgramId) =>
+        findActivation(id) { (activation: Activation) =>
+          sendMessage(ActivationCode(activation)) {
+            completeAs(OK) { ActivationKey(activation.code) }
+          }
+        }
+      }
+    }
+  }
+
+}
+					</code></pre>						
+				</section>
+
+				<section>
+					<h2>SRM: Spray-Routing Module Pattern</h2>
+          <h3>Routing component</h3>
+          <pre style="font-size: 40%"><code data-trim class="scala">
+trait ActivationRoute[M[+_]] { module: ActivationModule[M] =>
+  private val activate = {
+    (post & pathEnd) {
+      (entityAs[Program] >>= initActivation) {
+        case (key: ActivationKey, activation: Activation) =>
+          sendMessage(ActivationCode(activation)) {
+            complete(Created, key)
+          }
+      }
+    }
+  }
+
+  private val submit = {
+    (post & validKey) { (aid: String) =>
+      (entityAs[ConfirmationCode] & findActivation(aid)) {
+        case (submitCode: ConfirmationCode, activation: Activation) =>
+          validateCode(submitCode, activation) {
+            (closeActivation(aid) & scheduleProgram(activation.program)) {
+              (sendMessage(Activated(activation)) & emitEvent(ProgramActivated(activation))) {
+                completeAs(Accepted) { "Program activated" }
+              }
+            }
+          }
+      }
+    }
+  }
+
+  private val repeat = {
+    (get & validKey) { (aid: String) =>
+      findActivation(aid) { (activation: Activation) =>
+        sendMessage(ActivationCode(activation)) {
+          completeAs(OK) { ActivationKey(activation.code) }
+        }
+      }
+    }
+  }
+
+  lazy val activation = pathPrefix("activation") {
+    activate ~ submit ~ repeat
+  }
+}
+          </code></pre>
+				</section>
+
+        <section>
+          <h2>SRM: Spray-Routing Module Pattern</h2>
+          <h3>Manager component</h3>
+          <pre style="font-size: 40%"><code data-trim class="scala">
+trait ActivationManager[M[+_]] { module: ActivationModule[M] =>
+  import RemoteApi._
+  import constraints.maxJobs
+
+  private implicit lazy val repo = collections.medikit.activations
+
+  def initActivation(program: Program): D1[(ActivationKey, Activation)] = for {
+    checked   <- checkLimit(program)
+    activation = Activation(checked)
+    result    <- storeActivation(activation)
+  } yield result
+
+  def findActivation(activationId: String): D1[Activation] = unwrap {
+    findById[Activation](activationId).runLast.attempt >>= {
+      case \/-(Some(res)) => Task.now(res)
+      case _ => Task.fail(WrongActivationKeyRejection)
+    }
+  }
+
+  def validKey: Directive1[String] = path(Segment) flatMap {
+    case key if ObjectId.isValid(key) => provide(key)
+    case _ => reject(WrongActivationKeyRejection)
+  }
+
+  def validateCode(submission: ConfirmationCode, activation: Activation): D0 = {
+    if (activation.code == submission.code) pass else reject(ConfirmationCodeRejection)
+  }
+
+  def closeActivation(activationId: String): D0 = removeActivation(activationId).asD0
+
+  private def rejectIfExceeded(jobs: List[JobDetail]): D0 = {
+    val exceeded = jobs.length < maxJobs
+    if (exceeded) pass else reject(ProgramLimitExceededRejection)
+  }
+
+  private def checkLimit(program: Program): D1[Program] = rejectIfExceeded {
+    jobFactory findJobDetails program.phone
+  } asD1 program
+
+  def storeActivation(activation: Activation): D1[(ActivationKey, Activation)] = unwrap {
+    store[Activation](activation).runLast >>= {
+      case None => Task.fail(DOR("Couldn't store activation request"))
+      case Some(result) => result.fold(Task.fail(_), Task.now) map {
+        case (id, act) => ActivationKey(id) -> act
+      }
+    }
+  }
+
+  def removeActivation(id: String): D1[Boolean] = unwrap {
+    removeById(id).runLast >>= {
+      case Some(\/-(res)) => Task.now(res)
+      case _              => Task.fail(DOR("Couldn't remove activation"))
+    }
+  }
+
+}
+          </code></pre>
+        </section>
+
+        <section>
+          <h2>SRM: Spray-Routing Module Pattern</h2>
+          <h3>Module declaration</h3>
+          <pre style="padding-left: 20%"><code data-trim class="scala">
+            trait ActivationModule[M[+_]]
+  extends ActivationManager[M]
+     with ActivationRoutes[M] 
+     with ServiceStorageModule[M]
+     with MessengerModule[M]
+     with SchedulingServiceModule[M]
+     with StatisticsESModule
+     with LoggingSupport
+          </code></pre>
+        </section>
+
+        <section>
+            <h2>Revising Cake Pattern</h2>
+            <pre style="padding-left: 16%;"><code data-trim class="scala">
+trait StorageModule[M[+_]] {
+  type Storage <: StorageLike
+  implicit val M: Monad[M]
+  val storage: Storage
+  trait StorageLike {
+    def store[A: Serializer](object: A): M[Key]
+  }
+}              
+            </code></pre>
+          </section>
+
+          <section>
+          <h2>Revising Cake Pattern</h2>
+          <h3 class="fragment">Won't be compiled!</h3>
+            <pre style="padding-left: 16%;"><code data-trim class="scala">
+def register = for {
+  creds   <- credentials
+  _       <- check(creds)
+  account <- newAccount(creds)
+  userId  <- storage store account // returns M[Key]
+} yield userId
+            </code></pre>
+          </section>
+
+          <section>
+            <h2>Can we substitute M with Directive1</h2>
+            <h2>without breaking abstraction?</h2>
+          </section>
+
+          <section>
+            <h2>Magnet pattern</h2>
+            <pre style="padding-left: 5%;"><code data-trim class="scala">
+def unwrap[T](magnet: MonadMagnet[T]): D1[T] = magnet()
+            </code></pre>
+            
+            <pre style="padding-left: 5%;"><code data-trim class="scala">
+trait MonadMagnet[T] {
+  def apply(): D1[T]
+}
+            </code></pre>
+
+             <pre style="padding-left: 5%;"><code data-trim class="scala">
+object MonadMagnet {
+  implicit def apply[M[_], V](monad: M[V])
+    (implicit mmh: MonadMagnetHandler[M]) = {
+    new MonadMagnet[V] {
+      def apply(): D1[V] = mmh handle monad
+    }
+  }
+}
+            </code></pre>
+          </section>
+
+          <section>
+            <h2>Magnet pattern</h2>
+            <pre style="padding-left: 5%;"><code data-trim class="scala">
+implicit val taskMHandler: MonadMagnetHandler[Task] = {
+  new MonadMagnetHandler[Task] {
+    def handle[V](monad: Task[V]): D1[V] = onSuccess(monad)
+  }
+}
+            </code></pre>
+
+            <pre style="padding-left: 5%;"><code data-trim class="scala">
+implicit val idMHandler: MonadMagnetHandler[Id] = {
+  new MonadMagnetHandler[Id] {
+    def handle[V](value: V): D1[V] = provide(monad)
+  }
+}
+            </code></pre>
+          </section>
+
+          <section>
+          <h2>Now it perfectly compiles</h2>
+            <pre style="padding-left: 29%;"><code data-trim class="scala">
+def register = for {
+  creds   <- credentials
+  _       <- check(creds)
+  account <- newAccount(creds)
+  userId  <- unwrap { 
+    storage store account
+  } // returns D1[Key]
+} yield userId
+            </code></pre>
+          </section>
+
+          <section>
+            <h2>But there is another way!</h2>
+            <pre style="padding-left: 16%;"><code data-trim class="scala">
+trait ExtMonad[M[+_]] extends Monad[M] {
+  def fork[A](monad: => M[A]): M[A]
+  def withResult[A](monad: M[A])
+    (callback: (Throwable \/ A) => Unit): Unit
+}
+            </code></pre>
+          </section>
+
+          <section>
+            <h2>Now it's more general</h2>
+            <pre style="padding-left: 3%;"><code data-trim class="scala">
+implicit def apply[M[+_], A](monad: M[A])
+  (implicit M: ExtMonad[M]) = {
+  new MonadUnwrapper[A] {
+    def apply(): D1[A] = new D1[A] {
+      def happly(f: (A :: HNil) => Route): Route = { ctx =>
+        M.withResult(M.fork(monad)) {
+          case \/-(result) => f(result :: HNil)(ctx)
+          case -\/(ex) => ctx.failWith(ex)
+        }
+      }
+    }
+  }
+}
+            </code></pre>
+          </section>
+
+          <section>
+            <h2>Directive.scala</h2>
+            <pre style="padding-left: 15%"><code data-trim class="scala">
+              abstract class Directive[L <: HList] { self ⇒
+  def happly(f: L ⇒ Route): Route
+  def hflatMap[R <: HList](f: L ⇒ Directive[R]) = {
+    new Directive[R] {
+      def happly(g: R ⇒ Route) = self.happly { 
+        values ⇒ f(values).happly(g) 
+      }
+    }
+  }
+  ...
+}
+
+type Directive0    = Directive[HNil]
+type Directive1[A] = Directive[A :: HNil]
+            </code></pre>
+          </section>
+
+<section>
+            <h2>Simplify: </h2>
+            <h3>Directive[HList] to Directive1[A]</h3>
+            <pre style="padding-left: 20%; font-size: 40%"><code data-trim class="scala">
+              formFields("firstName", "lastName", "userName", "pwd") { 
+  (fn, ln, un, pwd) => // Directive[HList]
+    // implementation
+}
+          </code></pre>
+            Extract into a case class:
+            <pre style="padding-left: 20%; font-size: 40%"><code data-trim class="scala">
+            case class Credentials(firstName: String, lastName: String, 
+  userName: String, pwd: String)
+
+val data = formFields("firstName", "lastName", "userName", "pwd")
+
+data.as(Credentials) { credentials =>
+    // Directive1[Credentials]
+}
+            </code></pre>
+          </section>
+
+          <section>
+            <h2>Let the magic begin</h2>
+            <pre style="padding-left: 10%;"><code data-trim class="scala">
+              implicit val d1Monad: Monad[D1] = new Monad[D1] {
+  def point[A](a: => A): D1[A] = provide(a)
+  def bind[A, B](fa: D1[A])(f: (A) => D1[B]): D1[B] = {
+    fa hflatMap {
+      case value :: HNil => f(value)
+    }
+  }
+}
+            </code></pre>
+          </section>
+
+          <section>
+            <h2>WARNING!</h2>
+            <h3>Don't write this</h3>
+            <pre style="padding-left: 10%;"><code data-trim class="scala">
+              implicit val d1Monad: Monad[D1] = new Monad[D1] {
+  def point[A](a: => A): D1[A] = provide(a)
+  def bind[A, B](fa: D1[A])(f: (A) => D1[B]): D1[B] = {
+    fa flatMap f
+  }
+}
+            </code></pre>
+          </section>
+
+          <section>
+            <h2>What about Directive0?</h2>
+            <pre class="fragment" style="padding-left: 20%;">
+              <code data-trim class="scala">
+              def point[A](a: => A): D0 = new D0 {
+  def happly(f: HNil => Route): Route =
+    { ctx => a; f(HNil)(ctx) }
+}
+            </code></pre>
+            <pre class="fragment" style="padding-left: 18%;">
+              <code data-trim class="scala">
+              def bind[A, B](fa: D0)(f: A => D0): D0 = ???
+            </code></pre>
+          </section>
+
+          <section>
+            <h2>For-comprehension</h2>
+            <pre style="padding-left: 20%;">
+              <code data-trim class="scala">
+                        val withSession: D1[Session] = for {
+  creds    <- credentials
+  _        <- authenticate(creds)
+  session  <- initSession
+} yield session
+            </code></pre>
+          </section>
+
+          <section>
+            <h2>Implicit conversion to the rescue</h2>
+            <pre style="padding-left: 3%;"><code data-trim class="scala">
+implicit class Dir0Modifier(dir0: Directive0) {
+  def flatMap(func: HNil => D1[Unit]): D1[Unit] = {
+    new D1[Unit] {
+      def happly(f: (::[Unit, HNil]) => Route): Route = {
+        f(() :: HNil)
+      }
+    }
+  }
+}
+            </code></pre>
+          </section>
+
+          <section>
+            <h2>So far so good, but ...</h2>            
+          </section>
+
+          <section>
+            <h2>What's wrong with this code?</h2>            
+            <pre style="padding-left: 22%;"><code data-trim class="scala">
+def tasksByUserId(id: String) = for {
+  user   <- userById(id)
+  tasks  <- scheduledTasks
+} yield userTasks(user, tasks)
+            </code></pre>
+          </section>
+
+          <section>
+            <h2>Monads are sequential</h2>
+            <ol>
+              <li class="fragment">userById(id)</li>
+              <li class="fragment">scheduledTasks</li>
+              <li class="fragment">userTasks(user, tasks)</li>
+            </ol>
+            </code></pre>
+          </section>
+
+          <section>
+            <h2>All Monads are Applicatives!</h2>
+            <pre style="padding-left: 22%;"><code data-trim class="scala">
+              trait Monad[F[_]] extends Applicative[F]
+            </code></pre>
+          </section>
+
+          <section>
+            <h2>Parallelize!</h2>
+            <pre class="fragment" style="padding-left: 18%;"><code data-trim class="scala">
+def tasksByUserId(id: String) = {
+  (userById(id) |@| scheduledTasks) { userTasks }
+}
+            </code></pre>
+<pre class="fragment" style="padding-left: 18%;"><code data-trim class="scala">
+def tasksByUserId(id: String) = {
+  ^(userById(id), scheduledTasks) { userTasks }
+}
+            </code></pre>
+
+          </section>
+
+          
+				
+
+
+			</div>
+
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.min.js"></script>
+
+		<script>
+
+			// Full list of configuration options available here:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				controls: true,
+				progress: true,
+				history: true,
+				center: true,
+
+				theme: Reveal.getQueryHash().theme || 'sirthias', // available themes are in /css/theme
+				transition: Reveal.getQueryHash().transition || 'fade', // default/cube/page/concave/zoom/linear/fade/none
+				transitionSpeed: 'fast',
+				// Parallax scrolling
+				// parallaxBackgroundImage: 'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg',
+				// parallaxBackgroundSize: '2100px 900px',
+
+				// Optional libraries used to extend on reveal.js
+				dependencies: [
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+					{ src: 'plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
+				]
+			});
+
+		</script>
+	</body>
+</html>

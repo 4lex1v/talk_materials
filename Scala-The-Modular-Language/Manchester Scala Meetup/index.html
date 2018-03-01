@@ -1,0 +1,849 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+
+		<title>Scala - The Modular Language</title>
+
+		<meta name="description" content="Talk about Scala's modular roots">
+		<meta name="author" content="Aleksandr Ivanov">
+
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/black.css" id="theme">
+
+		<!-- Code syntax highlighting -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+			document.getElementById('theme').setAttribute('href','css/theme/solarized.css');
+		</script>
+        <style>
+            code {
+                padding: 1% 2%;
+            }
+        </style>
+
+		<!--[if lt IE 9]>
+		<script src="lib/js/html5shiv.js"></script>
+		<![endif]-->
+	</head>
+
+	<body>
+		<div class="reveal">
+			<div class="slides">
+
+				  <section>
+					    <h1>Scala </h1>
+					    <h1>The Modular Language</h1>
+					    <p style="font-weight: bold">
+						      <span>Scala Meetup &nbsp;&nbsp; 29-06-2015@Manchester</span>
+					    </p>
+					    <p>
+						      <small>
+                      Aleksandr Ivanov /
+                      <a href="mailTo:4lex1v@gmail.com"> 4lex1v@gmail.com </a> /
+                      <a href="https://twitter.com/4lex1v"> @4lex1v </a></small>
+					    </p>
+				  </section>
+
+          <section>
+              <h2>Agenda:</h2>
+              <ol>
+                  <li>The Modular Language</li>
+                  <li>Modularity</li>
+                  <li>Primary mechanisms</li>
+                  <li>The Modular Approach</li>
+                  <li>To Infinity and Beyond</li>
+              </ol>
+          </section>
+
+          <section>
+              <h2>Scala</h2>
+
+              <p class="fragment" data-fragment-index="1">Object-Oriented Core</p>
+              <p class="fragment" data-fragment-index="2">+</p>
+              <p class="fragment" data-fragment-index="2">Strong, Static type system</p>
+              <p class="fragment" data-fragment-index="3">+</p>
+              <p class="fragment" data-fragment-index="3">Functional Patterns</p>
+              <p class="fragment" data-fragment-index="4">+</p>
+              <p class="fragment" data-fragment-index="4">Flexible syntax</p>
+          </section>
+
+          <section>
+              <h2>Scala = Object/Functional Language</h2>
+
+              <section>
+                  <p class="fragment">What does <b>Object/Functional</b> programming mean?</p>
+                  <div class="fragment fade-in">
+                      <hr/>
+                      <p>A (Brief) History of Object-Functional Programming</p>
+                      <p>Kevin Writh. Artima, 2009</p>
+                  </div>
+              </section>
+
+              <section>
+                  <h3>Set of patterns:</h3>
+                  <p class="fragment" data-fragment-index="3">Classes vs ADT</p>
+                  <p class="fragment">Methods vs Functions</p>
+                  <p class="fragment">Inheritance vs Type Classes</p>
+                  <p class="fragment">Mutability vs Immutability</p>
+                  <p class="fragment">etc...</p>
+              </section>
+          </section>
+
+          <section>
+              <h2>Scala = Modular Language
+                  <span class="fragment fade-in" data-fragment-index="1">
+                      <span class="fragment fade-out" data-fragment-index="2">?</span>
+                  </span>
+              </h2>
+
+              <div class="fragment" data-fragment-index="2">
+                  <h3>Modular Programming:</h3>
+                  <blockquote style="width: 100%" cite="https://en.wikipedia.org/wiki/Modular_programming">
+                      Is the process of subdividing a computer program into independent, interchangeable components.
+                  </blockquote>
+              </div>
+
+              <div class="fragment" data-fragment-index="3">
+                  <h3>Forms of Modules:</h3>
+                  <ul>
+                      <li>Functions</li>
+                      <li>Objects</li>
+                      <li>Classes</li>
+                      <li>Actors</li>
+                      <li>etc...</li>
+                  </ul>
+              </div>
+          </section>
+
+          <section>
+              <h3>Scala's Modular Roots</h3>
+              <ul>
+                  <li class="fragment" data-fragment-index="1"><b>Modula 2</b> - Odersky's first serious language</li>
+                  <li class="fragment" data-fragment-index="1"><b>Modula 3</b> - Introduction of universal subtyping</li>
+                  <li class="fragment">
+                      <b>Haskell</b> - Type Classes
+                      (<a href="http://eed3si9n.com/revisiting-implicits-without-import-tax">Implicits without import tax</a>)
+                  </li>
+                  <li class="fragment">
+                      <span><b>SML</b> - Module System</span>
+                      <ul>
+                          <li>Abstract Type Members</li>
+                          <li>Structures as Objects</li>
+                          <li>Type Refinement</li>
+                      </ul>
+                  </li>
+              </ul>
+          </section>
+
+          <section>
+              <h2>Modularity</h2>
+              <p class="fragment">Is just something what we all want.</p>
+              <h3 class="fragment">A system that consists of:</h3>
+              <ul>
+                  <li class="fragment">Decoupled</li>
+                  <li class="fragment">Black-boxes</li>
+                  <li class="fragment">Existing (desirably)</li>
+                  <li class="fragment">Referentially Transparent</li>
+                  <li class="fragment">Representation Independance</li>
+              </ul>
+          </section>
+
+          <section>
+              <h2>Mechanisms for Modularity</h2>
+              <div class="fragment">
+                  <h3>Abstraction</h3>
+                  <blockquote>
+                      A loose specification of what our code offers to the client, without revealing it's implementation
+                  </blockquote>
+              </div>
+          </section>
+
+          <section>
+              <h2>The Road to Abstraction</h2>
+              <section></section>
+
+              <section>
+                  <h3>Abstract Datatype</h3>
+                  <p>A datatype which is defined in terms of functionality, how we use them, without any concrete implementation details</p>
+<pre style="width: 70%"><code class="scala" data-trim>
+trait Identity {
+  def id: String
+  def set(id: String): Identity
+}
+</code></pre>
+              </section>
+
+              <section>
+                  <h3>Abstract Type Members</h3>
+                  <p>Provide a flexible way to abstract over concrete types of components. Abstract type can hide information about internals of a component, similar to their use in SML signatures.</p>
+<pre><code class="scala" data-trim>
+trait Storage {
+  type Identity
+  type Entity
+
+  def store(entity: Entity): Identity
+  def getById(id: Identity): Entity
+}
+</code></pre>
+
+              </section>
+
+              <section>
+                  <h3>Type Parameters</h3>
+                  <p>A placeholder for a specific type that a client specifies when they instantiate a variable of the generic type</p>
+<pre><code class="scala" data-trim>
+trait Cache[A] {
+  def put(obj: A): Boolean
+  def get(key: String): A
+}
+</code></pre>
+              </section>
+
+              <section>
+                  <div>
+                      <h3>First-Order Types / Type constructors</h3>
+                      <p>A function on the level of types</p>
+<pre><code class="scala" data-trim>
+trait Functor[F[_]] {
+  def map[A, B](obj: F[A])(f: A => B): F[B]
+}
+
+val strList = Functor[List].map(List(1))(_.toString)
+</code></pre>
+                  </div>
+              </section>
+
+              <section>
+                  <h3>Higher-Order Types</h3>
+                  <p>A type which abstract over types which abstract over types</p>
+<pre style="width: 92%"><code class="scala" data-trim>
+trait AList[K[L[x]]] {
+  def transform[M[_], N[_]](value: K[M], f: M ~> N): K[N]
+  def traverse[M[_], N[_], P[_]](value: K[M], f: M ~> (N ∙ P)#l): N[K[P]]
+  def foldr[M[_], A](value: K[M], f: (M[_], A) => A, init: A): A
+}
+</code></pre>
+
+
+              <p>
+                  Links:
+                  <a href="https://github.com/sbt/sbt/blob/9ee8299383afb8c64f175acd9d3cb8648be519b6/util/collection/src/main/scala/sbt/AList.scala">AList.scala</a>,
+                  <a href="https://github.com/sbt/sbt/blob/9ee8299383afb8c64f175acd9d3cb8648be519b6/tasks/src/main/scala/sbt/Node.scala">Node.scala</a>
+              </p>
+          </section>
+          </section>
+
+          <section>
+              <h2>The Road to Modularity</h2>
+
+              <section>
+                  <h3>Declaring the model</h3>
+                  <p>Loose specification, without concrete implementation</p>
+<pre><code class="scala" data-trim>
+trait Storage {
+  type Id
+  type Entity
+
+  def put(entity: Entity): Id
+  def get(id: Id): Entity
+}
+</code></pre>
+
+                    </section>
+
+              <section>
+                  <h3>Creating module</h3>
+                  <p>Concrete implementation of our ADT</p>
+<pre><code class="scala" data-trim>
+object UserMemoryStorage extends Storage {
+  // Specifying types
+  type Id     = String
+  type Entity = User
+
+  // Internal representation
+  private var map = Map.empty[String, User]
+  private var cnt = 0
+
+  // Concrete implementation
+  def get(id: String): User = map(id)
+  def put(value: User): String = {
+    cnt += 1
+    map += (cnt -> value)
+    cnt
+  }
+}
+</code></pre>
+                    </section>
+
+              <section>
+                  <h3>Alternative version</h3>
+                  <p>Concrete implementation of our ADT</p>
+<pre><code class="scala" data-trim>
+object UserMongoStorage extends Storage {
+  // Specifying types
+  type Id     = ObjectId
+  type Entity = User
+
+  // Internal representation
+  private var coll = Collection(...)
+
+  // Concrete implementation
+  def get(id: String): User = coll.getById(id)
+  def put(value: User): String = coll.insert(value)
+}
+</code></pre>
+              </section>
+
+              <section>
+                  <h3>Other versions</h3>
+                  <p>As many as we want...</p>
+<pre><code class="scala" data-trim>
+object UserRedisStorage extends Storage { ... }
+object UserPostgresStorage extends Storage { ... }
+object UserStorageService extends Storage { ... }
+</code></pre>
+              </section>
+          </section>
+
+          <section>
+              <h2>Mechanisms for Modularity</h2>
+              <div>
+                  <h3>Abstraction</h3>
+                  <blockquote>
+                      A loose specification of what our code offers to the client, without revealing it's implementation
+                  </blockquote>
+              </div>
+              <div class="fragment">
+                  <h3>Composition</h3>
+                  <blockquote>
+                      Some way to fit existing components together in a way that any subtle change won't explode the universe
+                  </blockquote>
+              </div>
+          </section>
+
+          <section>
+              <h2>The Need for Composition</h2>
+              <section>
+                  <div class="fragment">
+                      <p><b>UserMemoryStorage</b> module:</p>
+<pre><code class="scala" data-trim>
+object UserMemoryStorage extends Storage {
+  type Entity = User
+
+  // Other Implementation details
+  // for a memory-based storage...
+}
+</code></pre>
+                  </div>
+
+                  <p class="fragment">What if we also need a different type of storage?</p>
+
+                  <div class="fragment">
+<pre><code class="scala" data-trim>
+object CredsMemoryStorage extends Storage {
+  type Entity = Creds
+
+  // Other Implementation details
+  // for a memory-based storage...
+}
+</code></pre>
+                  </div>
+              </section>
+              <section>
+                  <p>Parameterization?</p>
+                  <div class="fragment">
+                      <p><b>Won't work</b></p>
+<pre><code class="scala" data-trim>
+object MemoryStorage extends Storage {
+  type Entity = ???
+
+  // Other Implementation details
+  // for a memory-based storage...
+}
+</code></pre>
+                      <p>We <b>can't</b> parameterize Object construct!</p>
+                  </div>
+              </section>
+          </section>
+
+          <section>
+              <h2>Functors to the rescue!</h2>
+              <section>
+                  <h5 class="fragment">
+                      Nothing to do with Category theory, Haskell, C++ or Prolog.
+                      <div class="fragment"> sort of...</div>
+                  </h5>
+                  <h5 class="fragment">Let me introduce you to...</h5>
+                  <h1 class="fragment">SML Functors!</h1>
+              </section>
+              <section>
+                  <p>SML <b>Functor</b> is a function on the level of <b>Modules</b>.</p>
+                  <p class="fragment">Functor is a parametrized structure that takes other structures and returns a new structure in the same way that a function works with expression.</p>
+              </section>
+
+              <section>
+                  <p>SML <b>Functor</b> is a function on the level of <b>Modules</b>.</p>
+                  <div class="fragment">
+<pre><code data-trim>
+functor Functor(ModuleName: ModuleType) =
+struct
+  (* definitions *)
+end;
+</code></pre>
+                  </div>
+                  <div class="fragment">
+                  <p>Applying functor to create a new module</p>
+<pre><code data-trim>
+structure Result = FunctorName(ArgModule)
+</code></pre>
+                  </div>
+                  <p class="fragment">
+                      This builds a new module, using the provided one.
+                  </p>
+              </section>
+
+          </section>
+
+          <section>
+              <h2>SML functor in Scala</h2>
+              <p>Two ways to encode <b>SML Functor</b> in <b>Scala</b>:</p>
+              <ol>
+                  <li>Functor as a Class</li>
+                  <li>Functor as a Function</li>
+              </ol>
+          </section>
+
+          <section>
+              <h2>Functor as a Class</h2>
+
+              <section>
+                <p>Let's return to the MemoryStorage example:</p>
+<pre><code data-trim>
+object MemoryStorage extends Storage {
+  type Entity = ???
+
+  // Other Implementation details
+  // for a memory-based storage...
+}
+</code></pre>
+              </section>
+
+              <section>
+                  <p>Functor = Parameterized Class</p>
+<pre><code data-trim>
+class MemoryStorage(M: ModuleBase) extends Storage {
+  type Entity = M.ModuleType
+
+  // Implementation stays the same...
+}
+</code></pre>
+              </section>
+
+              <section>
+                  <p>Functor application = Class instantiation</p>
+                  <p>Object = Module</p>
+                  <p>As many as we want:</p>
+<pre><code data-trim>
+val UserStorage  = new MemoryStorage(UserModule)
+val CredsStorage = new MemoryStorage(CredsModule)
+val DataStorage  = new MemoryStorage(DataModule)
+</code></pre>
+
+              </section>
+          </section>
+
+          <section>
+              <h2>Functor as a Function</h2>
+
+              <section>
+                  <p>Functor = Function</p>
+<pre><code data-trim>
+type Aux[A] = Storage { type Entity = A }
+def MemoryStorage(M: ModuleBase): Aux[M.ModuleType] = {
+  new Storage {
+    type Entity = M.ModuleType
+
+    // Implementation stays the same...
+  }
+}
+</code></pre>
+              </section>
+
+              <section>
+                  <p>Functor Application = Function Application</p>
+<pre><code data-trim>
+val UserStorage  = MemoryStorage(UserModule)
+val CredsStorage = MemoryStorage(CredsModule)
+val DataStorage  = MemoryStorage(DataModule)
+</code></pre>
+              </section>
+          </section>
+
+          <!--<section>-->
+              <!--<p><b>UserAuthService Functor:</b></p>-->
+<!--<pre><code class="scala" data-trim>-->
+<!--type R[A] = AuthService { type AuthResult = Directive1[A] }-->
+<!--type UserSec = Security { type Subj = User }-->
+<!--def UserAuthService(sec: UserSec): R[sec.Identity] = {-->
+  <!--new AuthService {-->
+    <!--case class Creds(keyword: String)-->
+    <!--type AuthResult = Directive1[sec.Identity]-->
+
+    <!--def doAuth(creds: Creds): AuthResult = {-->
+      <!--val user = Storage[User].findByKey(creds.keyword)-->
+      <!--provide(sec.check(user))-->
+    <!--}-->
+  <!--}-->
+<!--}-->
+<!--</code></pre>-->
+          <!--</section>-->
+
+          <!--<section>-->
+              <!--<p>Functor application:</p>-->
+<!--<pre><code class="scala" data-trim>-->
+<!--val godMode   = UserAuthService(GodModAccess) // Full access-->
+<!--val adminMode = UserAuthService(AdminAccess)  // For admins only-->
+<!--val userMode  = UserAuthService(UserAccess)   // For basic users-->
+<!--</code></pre>-->
+          <!--</section>-->
+
+          <!--<section>-->
+              <!--<p><b>UserAuthService Functor V2</b></p>-->
+<!--<pre><code class="scala" data-trim="">-->
+<!--type UserSec = Security { type Subj = User }-->
+<!--final class UserAuthService(sec: UserSec) extends AuthService {-->
+  <!--case class Creds(keyword: String)-->
+  <!--type AuthResult = Directive1[sec.Identity]-->
+
+  <!--def doAuth(creds: Creds): AuthResult = {-->
+    <!--val user = Storage[User].findByKey(creds.keyword)-->
+    <!--provide(sec.check(user))-->
+  <!--}-->
+<!--}-->
+
+<!--val godMode = new UserAuthService(GodModAccess) // Full access-->
+<!--</code></pre>-->
+          <!--</section>-->
+
+          <section>
+              <h2>Class vs Function</h2>
+
+              <section>
+                  <ul>
+                      <li class="fragment">
+                          <p>The output module relies only on the interface</p>
+                          <pre style="width: 100%"><code>def MemoryStorage(M: ModuleBase): Storage { type Entity = M.ModuleType }</code></pre>
+                      </li>
+                      <li class="fragment">
+                          <p>No need to upcast the module's type</p>
+<pre style="width: 100%"><code data-trim>
+val UserStorage: Storage { type Entity = UserModule.ModuleType } =
+    new MemoryStorage(UserModule)
+</code></pre>
+                      </li>
+                      <li class="fragment">
+                          <p>Visibility issue</p>
+<pre style="width: 100%"><code data-trim>
+class MemoryStorage(M: ModuleBase) extends Storage {
+    type Entity = M.ModuleType // Won't compile
+}
+</code></pre>
+                      </li>
+                  </ul>
+              </section>
+
+              <section>
+                  <p>Scala's generic classes are only prameterized by types, while generic functions takes types and values separately.</p>
+                  <p>Given two ADTs:</p>
+<pre style="width: 100%"><code data-trim>
+trait Module1 {
+  type Inner
+}
+
+trait Module2 {
+  type Type
+  def add(v: Type, seq: List[Type]): List[Type]
+}
+</code></pre>
+                        <p>and we want define a functor for them</p>
+                    </section>
+
+              <section>
+                  <p>A definition based on the Class</p>
+<pre style="width: 75%"><code style="padding: 1% 2%" data-trim>
+class Functor(val m: Module1) extends Module2 {
+  type Type = m.Inner
+  def add(v: Type, seq: List[Type]) = v :: seq
+}
+
+object U extends Functor(new Module1 { type Inner = Int })
+</code></pre>
+                        <div class="fragment">
+                            <p>And it compiles</p>
+<pre style="width: 75%"><code class="scala" style="padding: 1% 2%" data-trim>
+defined trait Module1
+defined trait Module2
+defined class Functor
+defined object U
+</code></pre>
+                        </div>
+                        </section>
+
+              <section>
+                  <p>But miserably fails at the call-site:</p>
+<pre style="width: 75%"><code style="padding: 1% 2%" data-trim>
+scala> U.add(1, List.empty)
+console:11: error: type mismatch;
+    found   : Int(1)
+    required: U.Type
+    (which expands to)  U.m.Inner
+    U.add(1, Nil)
+</code></pre>
+                        <h4 class="fragment">Scala doesn't track values in types!</h4>
+                        </section>
+
+              <section>
+                  <p>Let's do the same, but this time with function-based functor</p>
+<pre style="width: 75%"><code style="padding: 1% 2%" data-trim>
+def Functor(m: Module1): Module2 { type Type = m.Inner } =
+  new Module2 {
+    type Type = m.Inner
+    def add(v: Type, seq: List[Type]) = v :: seq
+  }
+
+val U = Functor(new Module1 { type Inner = Int })
+</code></pre>
+                        </section>
+
+              <section>
+                  <p>It compiles with proper types!</p>
+<pre style="width: 75%"><code class="scala" style="padding: 1% 2%" data-trim>
+Functor: (m: Module1)Module2{type Type = m.Inner}
+U: Module2{type Type = Int} = $anon$2@7afbf2a0
+</code></pre>
+                        <span class="fragment">
+                            <p>And works as expected</p>
+<pre style="width: 75%"><code class="scala" style="padding: 1% 2%" data-trim>
+scala> U.add(1, Nil)
+res6: List[U.Type] = List(1)
+</code></pre>
+                        </span>
+                    </section>
+
+          </section>
+
+          <section>
+              <h2>Representation independence</h2>
+              <p><b>Mitchel 1986</b></p>
+              <p>"Representation independence and data abstraction"</p>
+
+              <blockquote class="fragment" data-fragment-index="1" style="width: 100%">
+                  The behaviour of clients of our ADT must be unaffected by changes to the internal representation of the ADT that are preserved by the operations
+              </blockquote>
+
+              <div class="fragment fade-in" data-fragment-index="2">
+                  <div class="fragment hide" data-fragment-index="3">
+                      <b>M</b> ~ <b>M'</b> => for all <b>F</b>, <b>F(M)</b> ~ <b>F(M')</b>
+                  </div>
+              </div>
+
+              <div class="fragment fade-in" data-fragment-index="3">
+<pre class="fragment fade-out" data-fragment-index="4"><code data-trim>
+val Result = Functor(Module)
+Universe(Result)
+</code></pre>
+              </div>
+
+              <div class="fragment" data-fragment-index="4">
+<pre class="fragment fade-out" data-fragment-index="4"><code data-trim>
+val Result = Functor(AnotherModule)
+Universe(Result)
+</code></pre>
+              </div>
+
+          </section>
+
+          <section>
+              <h2>Functor as a Framework</h2>
+              <section>
+                  <p><b>Functor</b> is the core piece that joins many existing modules into a single application</p>
+<pre style="width: 75%"><code class="scala" style="padding: 1% 2%" data-trim>
+object Authentication {
+  sealed trait AuthService[F[_]] {
+    type Creds
+    type TokenType
+
+    implicit def M: Monad[F]
+
+    def doAuth: Creds => F[TokenType]
+  }
+
+  type Aux[F[_], C, TT] = AuthService[F[_]] {
+    type Creds = C
+    type TokenType = TT
+  }
+
+  // Other Definitions
+}
+</code></pre>
+              </section>
+
+              <section>
+                  <p>It might contain some concrete implementations</p>
+<pre><code class="scala" data-trim>
+val BasicAuth: Aux[Id, String, String] = new AuthService[Id] { ... }
+// etc...
+</code></pre>
+        <p>And some functors</p>
+<pre><code class="scala" data-trim>
+type DB[F[_]] = StorageT[F, PwdCredentials]
+type Result[F[_], TT] = Aux[F, PwdCredentials, TT]
+def PwdAuth[F[_]: Monad](db: DB[F], s: Security): Result[F, s.Token] = {
+  new AuthService[F] {
+    type Creds = PwdCredentials
+    type TokenType = s.Token
+    implicit val M = Monad[F]
+    def doAuth: Creds => F[TokenType] = { ... }
+  }
+}
+</code></pre>
+              </section>
+
+          </section>
+
+          <section>
+              <h2>The Dark Side</h2>
+              <ol>
+                  <li class="fragment" data-fragment-index="1">
+                      <p>Scala Type system limitations</p>
+<pre style="width: 100%"><code data-trim>
+def func(v: { type T }) = new { def a(f: v.T) = f }
+console:7: error: Parameter type in structural refinement may not refer
+                  to an abstract type defined outside that refinement
+</code></pre>
+<pre style="width: 100%"><code style="padding: 1% 2%" data-trim>
+scala> U.add(1, List.empty)
+console:11: error: type mismatch;
+    found   : Int(1)
+    required: U.Type
+    (which expands to)  U.m.Inner
+    U.add(1, Nil)
+</code></pre>
+                  </li>
+                  <li class="fragment" data-fragment-index="1">Type Inference limitations</li>
+                  <li class="fragment" data-fragment-index="2">Type wizardry</li>
+              </ol>
+          </section>
+
+          <section>
+              <h2>Functor application vs Mixin Composition</h2>
+
+              <section></section>
+
+              <section>
+                  <p>No recursive references between components</p>
+<pre><code class="scala" data-trim>
+trait Component1 { self: Component2 =>
+  // Definitions and declarations...
+}
+
+trait Component2 { self: Component1 =>
+  // Definitions and declarations...
+}
+</code></pre>
+                  <p>Example: <a href="https://github.com/scala/scala">Scala Compiler</a></p>
+              </section>
+
+              <section>
+                  <p>Functor Application -> No Inheritance</p>
+                  <p>But type-heavy!</p>
+<pre><code class="scala" data-trim>
+type DB[F[_]] = StorageT[F, PwdCredentials]
+type Result[F[_], TT] = Aux[F, PwdCredentials, TT]
+def PwdAuth[F[_]: Monad](db: DB[F], s: Security): Result[F, s.Token]
+</code></pre>
+              </section>
+
+              <section>
+                  <p>Functor Application -> No Inheritance</p>
+                  <p>Data-heavy!</p>
+<pre style="width: 135%; margin-left: -180px"><code class="scala" data-trim>
+trait StdLibModule[M[+_]] extends InfixLibModule[M] with UnaryLibModule[M] with ArrayLibModule[M]
+  with TimeLibModule[M] with MathLibModule[M] with TypeLibModule[M] with StringLibModule[M]
+  with StatsLibModule[M] with SummaryLibModule[M] with NormalizationLibModule[M] with ClusteringLibModule[M]
+  with RandomForestLibModule[M] with LogisticRegressionLibModule[M] with LinearRegressionLibModule[M]
+  with FSLibModule[M] with RandomLibModule[M] with PrecogLibModule[M] {
+
+    type Lib <: StdLib
+
+    trait StdLib extends InfixLib with UnaryLib with ArrayLib with TimeLib with MathLib with TypeLib
+      with StringLib with StatsLib with SummaryLib with NormalizationLib with ClusteringLib
+      with RandomForestLib with LogisticRegressionLib with LinearRegressionLib with FSLib
+      with RandomLib with PrecogLib
+}
+</code></pre>
+              </section>
+
+              <section>
+                  <p><b>Smaller Notes</b></p>
+                  <ol>
+                      <li class="fragment">Cake is good for close-coupling, mutual dependencies</li>
+                      <li class="fragment">Cake =/= Modularity, bad for weak coupling</li>
+                      <li class="fragment">Use implicits with function application</li>
+                      <li class="fragment">Fine-grained modularity with functor application</li>
+                      <li class="fragment">Plain old functions / constructor dependency</li>
+                  </ol>
+              </section>
+          </section>
+
+          <section>
+              <h2>Thoughts / Q&A</h2>
+          </section>
+			</div>
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.js"></script>
+
+		<script>
+
+			// Full list of configuration options available at:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				controls: false,
+				progress: false,
+                slideNumber: true,
+				history: true,
+				center: false,
+
+				transition: 'slide', // none/fade/slide/convex/concave/zoom
+
+				// Optional reveal.js plugins
+				dependencies: [
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/highlight/highlight.js', async: true, condition: function() { return !!document.querySelector( 'pre code' ); }, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'plugin/zoom-js/zoom.js', async: true },
+					{ src: 'plugin/notes/notes.js', async: true }
+				]
+			});
+
+		</script>
+
+	</body>
+</html>
